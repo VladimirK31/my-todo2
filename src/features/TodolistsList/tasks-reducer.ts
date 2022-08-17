@@ -17,6 +17,7 @@ import {
   setAppErrorAC,
   setAppStatusAC,
 } from '../../app/app-reduser'
+import { AxiosError } from 'axios'
 
 const initialState: TasksStateType = {}
 
@@ -103,17 +104,27 @@ export const removeTaskTC =
 export const addTaskTC =
   (title: string, todolistId: string) => (dispatch: Dispatch<ActionsType>) => {
     dispatch(setAppStatusAC('loading'))
-    todolistsAPI.createTask(todolistId, title).then((res) => {
-      if (res.data.resultCode === 0) {
-        const task = res.data.data.item
-        const action = addTaskAC(task)
-        dispatch(action)
-        dispatch(setAppStatusAC('succeeded'))
-      } else {
-        dispatch(setAppErrorAC(res.data.messages[0]))
-        dispatch(setAppStatusAC('succeeded'))
-      }
-    })
+    todolistsAPI
+      .createTask(todolistId, title)
+      .then((res) => {
+        if (res.data.resultCode === 0) {
+          const task = res.data.data.item
+          const action = addTaskAC(task)
+          dispatch(action)
+          dispatch(setAppStatusAC('succeeded'))
+        } else {
+          if (res.data.messages.length) {
+            dispatch(setAppErrorAC(res.data.messages[0]))
+          } else {
+            dispatch(setAppErrorAC('some error'))
+          }
+          dispatch(setAppStatusAC('failed'))
+        }
+      })
+      .catch((err: AxiosError) => {
+        dispatch(setAppErrorAC(err.message))
+        dispatch(setAppStatusAC('failed'))
+      })
   }
 export const updateTaskTC =
   (
@@ -141,15 +152,26 @@ export const updateTaskTC =
       ...domainModel,
     }
 
-    todolistsAPI.updateTask(todolistId, taskId, apiModel).then((res) => {
-      if (res.data.resultCode === 0) {
-        const action = updateTaskAC(taskId, domainModel, todolistId)
-        dispatch(action)
-      } else {
-        dispatch(setAppErrorAC(res.data.messages[0]))
-      }
-      dispatch(setAppStatusAC('succeeded'))
-    })
+    todolistsAPI
+      .updateTask(todolistId, taskId, apiModel)
+      .then((res) => {
+        if (res.data.resultCode === 0) {
+          const action = updateTaskAC(taskId, domainModel, todolistId)
+          dispatch(action)
+          dispatch(setAppStatusAC('succeeded'))
+        } else {
+          if (res.data.messages.length) {
+            dispatch(setAppErrorAC(res.data.messages[0]))
+          } else {
+            dispatch(setAppErrorAC('some error'))
+          }
+          dispatch(setAppStatusAC('failed'))
+        }
+      })
+      .catch((err: AxiosError) => {
+        dispatch(setAppErrorAC(err.message))
+        dispatch(setAppStatusAC('failed'))
+      })
   }
 
 // types
